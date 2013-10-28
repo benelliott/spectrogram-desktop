@@ -1,0 +1,20 @@
+
+INTRODUCTION
+
+The jfftw package is a Java interface to FFTW, a highly optimized FFT algorithm library.
+
+NOTES
+
+jfftw-1.2 was created for FFTW-2.1.3, using Sun's J2SDK-1.4.0.
+
+The C header files were generated with the `javah' tool distributed with the Sun Java SDK.
+They might be platform specific, but probably they aren't.
+
+Documentation is included in the Java source files and can be extracted with the `javadoc'
+tool distributed with the Sun Java SDK. (They are also included in a separate directory.)
+
+COPYING
+
+FFTW was created by MIT, jfftw was created by Daniel Darabos (cyhawk@sch.bme.hu).
+Both have GPL licenses.
+
