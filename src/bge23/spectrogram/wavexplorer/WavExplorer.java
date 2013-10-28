@@ -56,8 +56,8 @@ public class WavExplorer {
 				for (int i = 0; i < numSamples; i++) {
 					//wavFile already at offset 44, no need to seek
 					if (bitsPerSample == 8) firstChannelArray[i] = wavFile.readByte();
-					if (bitsPerSample == 16) firstChannelArray[i] = wavFile.readShort();
-					if (bitsPerSample == 32) firstChannelArray[i] = wavFile.readInt();
+					if (bitsPerSample == 16) firstChannelArray[i] = Short.reverseBytes(wavFile.readShort());
+					if (bitsPerSample == 32) firstChannelArray[i] = Integer.reverseBytes(wavFile.readInt());
 				}
 				
 			}
@@ -72,12 +72,12 @@ public class WavExplorer {
 							secondChannelArray[i] = wavFile.readByte();
 						}
 						if (bitsPerSample == 16) {
-							firstChannelArray[i] = wavFile.readShort();
-							secondChannelArray[i] = wavFile.readShort();
+							firstChannelArray[i] = Short.reverseBytes(wavFile.readShort());
+							secondChannelArray[i] = Short.reverseBytes(wavFile.readShort());
 						}
 						if (bitsPerSample == 32) {
-							firstChannelArray[i] = wavFile.readInt();
-							secondChannelArray[i] = wavFile.readInt();
+							firstChannelArray[i] = Integer.reverseBytes(wavFile.readInt());
+							secondChannelArray[i] = Integer.reverseBytes(wavFile.readInt());
 						}
 					}
 				}
