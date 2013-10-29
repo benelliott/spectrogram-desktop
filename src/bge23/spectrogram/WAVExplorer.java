@@ -1,4 +1,4 @@
-package bge23.spectrogram.wavexplorer;
+package bge23.spectrogram;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -11,7 +11,7 @@ import java.io.RandomAccessFile;
  * 
  */
 
-public class WavExplorer {
+public class WAVExplorer {
 	private RandomAccessFile wavFile; //file to open
 	private long fileLength; //length of whole file in bytes
 	private int dataLength; //number of bytes in data section
@@ -19,11 +19,11 @@ public class WavExplorer {
 	private short sampleRate; //sampling frequency Fs used to encode the file
 	private int bitsPerSample; //number of bits used to hold each sample
 	private int numSamples; //number of samples in the file
-	private int[] firstChannelArray; //array of samples from first (left) channel
-	private int[] secondChannelArray; //array of samples from second (right) channel, if it exists
+	private double[] firstChannelArray; //array of samples from first (left) channel
+	private double[] secondChannelArray; //array of samples from second (right) channel, if it exists
 	private boolean isMono; // true if there is only one channel, i.e. signal is mono, not stereo
 	
-	public WavExplorer(String filepath) {
+	public WAVExplorer(String filepath) {
 		try {
 			wavFile = new RandomAccessFile(filepath, "r");
 			
@@ -39,7 +39,7 @@ public class WavExplorer {
 			wavFile.seek(34);
 			bitsPerSample = wavFile.readByte();
 			if (bitsPerSample > 32) {
-				System.err.println("Bitrate of "+bitsPerSample+" not supported.");
+				System.err.println("Sample size of "+bitsPerSample+" bits not supported. Please use a file with a sample size of 32 bits or lower.");
 				throw new IOException();
 			}
 			
@@ -48,7 +48,7 @@ public class WavExplorer {
 			dataLength = Integer.reverseBytes(dataLength); //little-endian
 			
 			numSamples = (8*dataLength)/(numChannels*bitsPerSample);
-			firstChannelArray = new int[numSamples];
+			firstChannelArray = new double[numSamples];
 
 			if (numChannels == 1) { //mono, only one channel of samples
 				isMono = true;
@@ -64,7 +64,7 @@ public class WavExplorer {
 			else {
 				if (numChannels == 2) { //stereo, two channels of samples
 					isMono = false;
-					secondChannelArray = new int [numSamples];
+					secondChannelArray = new double [numSamples];
 					for (int i = 0; i < numSamples; i++) {
 						//wavFile already at offset 44, no need to seek
 						if (bitsPerSample == 8) {
@@ -92,19 +92,19 @@ public class WavExplorer {
 	}
 	
 	
-	public int[] getFirstChannelData() { //get a copy of the first channel data
+	public double[] getFirstChannelData() { //get a copy of the first channel data
 		int length = firstChannelArray.length;
-		int toReturn[] = new int[length];
+		double toReturn[] = new double[length];
 		for (int i = 0; i < length; i++) {
 			toReturn[i] = firstChannelArray[i];
 		}
 		return toReturn;
 	}
 	
-	public int[] getSecondChannelData() { //get a copy of the second channel data
+	public double[] getSecondChannelData() { //get a copy of the second channel data
 		if (!isMono) {
 			int length = secondChannelArray.length;
-			int toReturn[] = new int[length];
+			double toReturn[] = new double[length];
 			for (int i = 0; i < length; i++) {
 				toReturn[i] = secondChannelArray[i];
 			}
@@ -112,7 +112,7 @@ public class WavExplorer {
 		}
 		else {
 			System.err.println("File is not stereo; no second channel available.");
-			return new int[0]; //TODO is this bad?
+			return new double[0]; //TODO is this bad?
 		}
 	}
 	
@@ -140,17 +140,21 @@ public class WavExplorer {
 		return bitsPerSample;
 	}
 	
-	public static void main(String[] args) {
+	public boolean isMono() {
+		return isMono;
+	}
+	
+	public static void wavTest(String[] args) {
 		if (args.length != 1 || !(args[0].endsWith(".wav"))) {
 			System.err.println("Please provide path to .wav file.");
 			return;
 		}
-		WavExplorer we = new WavExplorer(args[0]);
+		WAVExplorer we = new WAVExplorer(args[0]);
 		System.out.println(we.getSampleRate());
 		System.out.println(we.getNumSamples());
 		System.out.println(we.getNumChannels());
 		System.out.println(we.getBitsPerSample());
-		int[] dataArray = we.getFirstChannelData();
+		double[] dataArray = we.getFirstChannelData();
 		for (int i = 1000; i < 1005; i++) {
 			System.out.println(dataArray[i]);
 		}
