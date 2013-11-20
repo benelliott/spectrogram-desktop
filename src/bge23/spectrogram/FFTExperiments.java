@@ -25,7 +25,7 @@ This method computes only half of the elements of the real transform.
  */
 
 public class FFTExperiments {
-	public static void main(String[] args) {
+	public static void ismain(String[] args) {
 		FFTExperiments f = new FFTExperiments();
 		f.testWAV(args[0]);
 	}

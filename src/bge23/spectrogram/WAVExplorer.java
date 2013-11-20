@@ -22,7 +22,8 @@ public class WAVExplorer {
 	private double[] firstChannelArray; //array of samples from first (left) channel
 	private double[] secondChannelArray; //array of samples from second (right) channel, if it exists
 	private boolean isMono; // true if there is only one channel, i.e. signal is mono, not stereo
-	
+	private int duration; //duration of WAV file in seconds
+	//TODO: use ints for things like sampleRate?
 	public WAVExplorer(String filepath) {
 		try {
 			wavFile = new RandomAccessFile(filepath, "r");
@@ -83,6 +84,7 @@ public class WAVExplorer {
 				}
 				else throw new IOException();
 			}
+			duration = numSamples * sampleRate;
 			wavFile.close();
 		} catch (FileNotFoundException e) {
 			System.err.println("Couldn't find file!");
@@ -143,6 +145,11 @@ public class WAVExplorer {
 	public boolean isMono() {
 		return isMono;
 	}
+	
+	public int getDuration() {
+		return duration;
+	}
+	
 	
 	public static void wavTest(String[] args) {
 		if (args.length != 1 || !(args[0].endsWith(".wav"))) {
