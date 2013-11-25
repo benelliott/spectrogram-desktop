@@ -1,6 +1,7 @@
 package bge23.spectrogram;
 
 import java.util.ArrayList;
+import edu.emory.mathcs.jtransforms.fft.DoubleFFT_1D;
 
 //TODO: find good values for sliceDurationLimit, windowSize, overlap
 
@@ -102,9 +103,39 @@ public class Spectrogram{
 		}
 	}
  	
+ 	//TODO: should have a windowing function here somewhere...
  	
  	private void spectroTransform(double[] paddedSamples) { //calculate the squared STFT of the provided time-domain samples
- 		
+ 		//TODO: this is the simplest 'test' implementation and is very inefficient and possibly buggy. making it more efficient will require analysing the JTransforms library
+ 		/* From JTransforms documentation:
+		 * 
+		 * 
+		public void realForward(double[] a)
+		Computes 1D forward DFT of real data leaving the result in a . The physical layout of the output data is as follows:
+		if n is even then
+		 a[2*k] = Re[k], 0<=k<n/2
+		 a[2*k+1] = Im[k], 0<k<n/2
+		 a[1] = Re[n/2]
+		
+		if n is odd then
+		 a[2*k] = Re[k], 0<=k<(n+1)/2
+		 a[2*k+1] = Im[k], 0<k<(n-1)/2
+		 a[1] = Im[(n-1)/2]
+		
+		This method computes only half of the elements of the real transform.
+		 The other half satisfies the symmetry condition. 
+		 If you want the full real forward transform, use realForwardFull.
+		  To get back the original data, use realInverse on the output of this method.
+		
+		 */
+		DoubleFFT_1D d = new DoubleFFT_1D(paddedSamples.length / 2); //initialise with n, where n = data size TODO: this ok??
+		d.realForward(paddedSamples);
+		
+		//Now the STFT has been done, need to square it... so here's an ugly way of doing so:
+		
+		for (int i = 0; i < paddedSamples.length / 2 + 1; i++) {
+			paddedSamples[i] *= paddedSamples[i];
+		}
  	}
  	
 	private void getNextDrawableChunk() {
