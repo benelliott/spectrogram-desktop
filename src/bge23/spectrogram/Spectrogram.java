@@ -105,21 +105,19 @@ public class Spectrogram{
 	}
  	
 	private void hammingWindow(double[] samples) {
-		double[] hamming = generateWindow(samples.length); //need to generate an appropriate window for the window size
-		for (int i = 0; i < samples.length; i++) {
-			samples[i] *= hamming[i]; //apply windowing function through multiplication with time-domain samples
-		}
-	}
-	
-	private double[] generateHammingWindow(int windowSize) {
 		//TODO: document properly and check
-		int m = windowSize/2;
-		double[] toReturn = new double[windowSize];
+		//generate an appropriate window for the window size
+		int m = samples.length/2;
+		double[] hamming = new double[samples.length];
 		double r = Math.PI/(m+1);
 		for (int i = -m; i < m; i++) {
                 	w[m + i] = 0.5f + 0.5f * Math.cos(i * r);
 		}
 		//TODO: fix imports
+	
+		for (int i = 0; i < samples.length; i++) {
+			samples[i] *= hamming[i]; //apply windowing function through multiplication with time-domain samples
+		}
 	}
 
  	private void spectroTransform(double[] paddedSamples) { //calculate the squared STFT of the provided time-domain samples
