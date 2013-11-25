@@ -89,7 +89,24 @@ public class Spectrogram{
 	
 	//TODO: remember that last 'slice' in list may only be part-full
 	
-	
+	private void fillSpectro() {
+		for (double[][] slice : audioSlices) {
+			double[][] spectroSlice = new double[slice.length][slice[0].length]; //JTransforms requires that input arrays be padded with as many zeros as there are samples. TODO: check that there are always the same number of samples
+			for (int window = 0; window < slice.length; window++) {
+				for (int i = 0; i < slice[window].length; i++) {
+					spectroSlice[window][i] = slice[window][i];
+				}
+				spectroTransform(spectroSlice[window]); //store the STFT of the window in the same array once the samples have been populated 
+			}
+			spectroSlices.add(spectroSlice); //add the transformed slice to the list
+		}
+	}
+ 	
+ 	
+ 	private void spectroTransform(double[] paddedSamples) { //calculate the squared STFT of the provided time-domain samples
+ 		
+ 	}
+ 	
 	private void getNextDrawableChunk() {
 		//TODO -- allows SpectrogramComponent to ask for next data to draw
 	}
