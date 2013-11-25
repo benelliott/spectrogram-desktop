@@ -88,7 +88,7 @@ public class Spectrogram{
 		
 	}
 	
-	//TODO: remember that last 'slice' in list may only be part-full
+	//remember that last 'slice' in list may only be part-full
 	
 	private void fillSpectro() {
 		for (double[][] slice : audioSlices) {
@@ -97,14 +97,31 @@ public class Spectrogram{
 				for (int i = 0; i < slice[window].length; i++) {
 					spectroSlice[window][i] = slice[window][i];
 				}
+				hammingWindow(spectroSlice[window]); //Apply windowing function to window 
 				spectroTransform(spectroSlice[window]); //store the STFT of the window in the same array once the samples have been populated 
 			}
 			spectroSlices.add(spectroSlice); //add the transformed slice to the list
 		}
 	}
  	
- 	//TODO: should have a windowing function here somewhere...
- 	
+	private void hammingWindow(double[] samples) {
+		double[] hamming = generateWindow(samples.length); //need to generate an appropriate window for the window size
+		for (int i = 0; i < samples.length; i++) {
+			samples[i] *= hamming[i]; //apply windowing function through multiplication with time-domain samples
+		}
+	}
+	
+	private double[] generateHammingWindow(int windowSize) {
+		//TODO: document properly and check
+		int m = windowSize/2;
+		double[] toReturn = new double[windowSize];
+		double r = Math.PI/(m+1);
+		for (int i = -m; i < m; i++) {
+                	w[m + i] = 0.5f + 0.5f * Math.cos(i * r);
+		}
+		//TODO: fix imports
+	}
+
  	private void spectroTransform(double[] paddedSamples) { //calculate the squared STFT of the provided time-domain samples
  		//TODO: this is the simplest 'test' implementation and is very inefficient and possibly buggy. making it more efficient will require analysing the JTransforms library
  		/* From JTransforms documentation:
@@ -133,7 +150,7 @@ public class Spectrogram{
 		
 		//Now the STFT has been done, need to square it... so here's an ugly way of doing so:
 		
-		for (int i = 0; i < paddedSamples.length / 2 + 1; i++) {
+		for (int i = 0; i < paddedSamples.length / 2 + 1; i++) { //TODO: +1? really?
 			paddedSamples[i] *= paddedSamples[i];
 		}
  	}
