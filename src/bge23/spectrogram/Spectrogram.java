@@ -6,16 +6,20 @@ import edu.emory.mathcs.jtransforms.fft.DoubleFFT_1D;
 
 //TODO: find good values for sliceDurationLimit, windowSize, overlap
 
-public class Spectrogram{
+public class Spectrogram {
 	private ArrayList<double[][]> audioSlices = new ArrayList<double[][]>(); //List of 2D arrays of input data with syntax slice[window number][window element]
 	private boolean finalSliceIncomplete = false;
 	private boolean finalWindowIncomplete = false;
+	private int fileDuration; //in miliseconds
 	private int finalSliceElements;
 	private int finalWindowElements;
 	private int sampleRate;
 	private int bitsPerSample;
+	private int elementsPerWindow;
+	private int windowsPerSlice;
 	private int windowDuration = 32; //window size in miliseconds. Window size will decide the index range for the arrays. TODO: decide an appropriate size
 	private int windowSize; //size of window IN BYTES
+	private int windowsInFile;
 	private ArrayList<double[][]> spectroSlices = new ArrayList<double[][]>(); //List of 2D arrays of output data, e.g. temp = slices.getFirst(); temp[time][freq]
 	private int sliceDurationLimit = 4096; //limit of slice duration in miliseconds. Currently 4096ms = 4.096s  -- TODO: decide an appropriate size
 	private int audioSliceSizeLimit; //limit to audio slice size in bytes
@@ -29,13 +33,11 @@ public class Spectrogram{
 
 	public Spectrogram(String filepath) {
 		getDataFromWAV(filepath);
+		fillSpectro();
 	}
 
-	public static void main(String[] args) {
-		Spectrogram s = new Spectrogram();
-		s.getDataFromWAV("C:\\Users\\Ben\\lapwing.wav");
-		s.fillSpectro();
-
+	public static void ismain(String[] args) {
+		Spectrogram s = new Spectrogram("C:\\Users\\Ben\\lapwing.wav");
 	}
 
 	private void getDataFromWAV(String filepath) { //fills audioSlices list with 
@@ -48,20 +50,22 @@ public class Spectrogram{
 		sampleRate = w.getSampleRate();
 		System.out.println("Sample rate: "+sampleRate);
 		bitsPerSample = w.getBitsPerSample();
+		fileDuration = w.getDuration()*1000; //given in seconds, want miliseconds
 		System.out.println("Bits per sample: "+bitsPerSample);
 		windowSize = windowDuration*sampleRate*bitsPerSample/8000; //8000 = 8*1000 since 8 bits in byte and 1000 ms in a sec (rate is 1/sec). Not actually used directly because not an exact multiple of 2
 		audioSliceSizeLimit = sliceDurationLimit*sampleRate*bitsPerSample/8000;
 		audioSliceElements = audioSliceSizeLimit*8/bitsPerSample;
 		System.out.println("Audio slice size limit (bytes): "+audioSliceSizeLimit+", or (elements): " +audioSliceSizeLimit*8/bitsPerSample); //TODO: remove eventually
-		int windowsPerSlice = sliceDurationLimit/windowDuration; //no. windows in slice = slice duration / window duration
+		windowsPerSlice = sliceDurationLimit/windowDuration; //no. windows in slice = slice duration / window duration
 		System.out.println("Windows per slice: "+windowsPerSlice);
-		int elementsPerWindow = windowSize*8/bitsPerSample; //no. elements in window = slice size (bytes) / no. windows
+		elementsPerWindow = windowSize*8/bitsPerSample; //no. elements in window = slice size (bytes) / no. windows
 		System.out.println("Window size (bytes): "+windowSize);
 		System.out.println("Elements per window: "+elementsPerWindow);
 		int i = 1;
 		
 		System.out.println("Length of WAV audio data is "+ firstChannelData.length + " elements, or "+ firstChannelData.length*bitsPerSample/8 + " bytes." );
-		System.out.println("There are "+firstChannelData.length/(elementsPerWindow*windowsPerSlice)+ " full slices in the data, or "+firstChannelData.length/elementsPerWindow+" full windows.");
+		windowsInFile = firstChannelData.length/elementsPerWindow;
+		System.out.println("There are "+firstChannelData.length/(elementsPerWindow*windowsPerSlice)+ " full slices in the data, or "+windowsInFile+" full windows.");
 			while (i*audioSliceElements < firstChannelData.length) { //takes care of all full slices
 				System.out.println("Value of i is "+i+", value of i*audioSliceElements is "+audioSliceElements*i);
 				//want to add an array to ArrayList each time we fill one minute's worth
@@ -208,6 +212,24 @@ public class Spectrogram{
 
 	private void getDrawableChunk(int time) {
 		//TODO
+	}
+	
+	public int getWindowDuration() {
+		return windowDuration;
+	}
+
+	public int getElementsPerWindow() {
+		return elementsPerWindow;
+	}
+
+	public double[] getSpectrogramWindow(int windowOffset) { //returns the spectrogram data for the requested window
+		int sliceNumber = windowOffset/windowsPerSlice;
+		return spectroSlices.get(sliceNumber)[windowOffset%windowsPerSlice];
+		
+	}
+
+	public int getWindowsInFile() {
+		return windowsInFile;
 	}
 
 

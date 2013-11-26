@@ -21,7 +21,7 @@ public class OtherPersonsCode extends JComponent {
     private static final int W = 640;
     private static final int H = 480;
     private static final int REFRESH_INTERVAL = 50; // ms
-    private static final int STEP = 10;
+    private static final int STEP = 1;
     private int position = 0;
     private BufferedImage buffer;
     private BufferedImage img1;
@@ -71,22 +71,22 @@ public class OtherPersonsCode extends JComponent {
         // no need to clear since everything is covered with opaque color
         for (int i = 0; i < W / STEP; i++) {
             g2current.setColor(colors[random.nextInt(256)]);
-            g2current.fillRect(i * STEP, position, STEP, STEP);
+            g2current.fillRect(position, i * STEP, STEP, STEP);
         }
 
         if (g2current == g2img1) {
-            g2buffer.drawImage(img1, 0, H - position, null);
-            g2buffer.drawImage(img2, 0, -position, null);
+            g2buffer.drawImage(img1, W - position, 0, null);
+            g2buffer.drawImage(img2, -position, 0, null);
         } else {
-            g2buffer.drawImage(img2, 0, H - position, null);
-            g2buffer.drawImage(img1, 0, -position, null);
+            g2buffer.drawImage(img2, W - position, 0, null);
+            g2buffer.drawImage(img1, -position, 0, null);
         }
 
         // paintComponent will be called on the EDT (Event Dispatch Thread)
         repaint();
     }
 
-    public static void main(String[] args) {
+    public static void ismain(String[] args) {
         final JPanel panel = new JPanel(new BorderLayout());
         OtherPersonsCode spectogram = new OtherPersonsCode();
         spectogram.setPreferredSize(new Dimension(W, H));

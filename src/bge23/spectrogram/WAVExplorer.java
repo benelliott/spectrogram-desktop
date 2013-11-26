@@ -16,7 +16,7 @@ public class WAVExplorer {
 	private long fileLength; //length of whole file in bytes
 	private int dataLength; //number of bytes in data section
 	private short numChannels; //number of channels in the file
-	private short sampleRate; //sampling frequency Fs used to encode the file
+	private int sampleRate; //sampling frequency Fs used to encode the file
 	private int bitsPerSample; //number of bits used to hold each sample
 	private int numSamples; //number of samples in the file
 	private double[] firstChannelArray; //array of samples from first (left) channel
@@ -34,8 +34,8 @@ public class WAVExplorer {
 			numChannels = wavFile.readShort();
 			numChannels = Short.reverseBytes(numChannels); //must reverse bits since little-endian
 			
-			sampleRate = wavFile.readShort(); //at offset 24 so no seeking necessary
-			sampleRate = Short.reverseBytes(sampleRate); //little-endian
+			sampleRate = wavFile.readInt(); //at offset 24 so no seeking necessary
+			sampleRate = Integer.reverseBytes(sampleRate); //little-endian
 			
 			wavFile.seek(34);
 			bitsPerSample = wavFile.readByte();
