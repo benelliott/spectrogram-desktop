@@ -1,95 +1,122 @@
 package bge23.spectrogram;
 
 import java.util.ArrayList;
+
 import edu.emory.mathcs.jtransforms.fft.DoubleFFT_1D;
 
 //TODO: find good values for sliceDurationLimit, windowSize, overlap
 
 public class Spectrogram{
-	private ArrayList<double[][]> audioSlices; //List of 2D arrays of input data with syntax slice[window number][window element]
+	private ArrayList<double[][]> audioSlices = new ArrayList<double[][]>(); //List of 2D arrays of input data with syntax slice[window number][window element]
 	private boolean finalSliceIncomplete = false;
 	private boolean finalWindowIncomplete = false;
-	private int finalSliceLength;
-	private int finalWindowLength;
+	private int finalSliceElements;
+	private int finalWindowElements;
 	private int sampleRate;
 	private int bitsPerSample;
-	private int windowSize = 20; //window size in miliseconds. Window size will decide the index range for the arrays. TODO: decide an appropriate size
-	private ArrayList<double[][]> spectroSlices; //List of 2D arrays of output data, e.g. temp = slices.getFirst(); temp[time][freq]
-	private int sliceDurationLimit = 6000; //limit of slice duration in miliseconds  -- TODO: decide an appropriate size
-	private int audioSliceSizeLimit = (sliceDurationLimit/1000)*sampleRate*bitsPerSample; //limit to audio slice size in 
+	private int windowDuration = 32; //window size in miliseconds. Window size will decide the index range for the arrays. TODO: decide an appropriate size
+	private int windowSize; //size of window IN BYTES
+	private ArrayList<double[][]> spectroSlices = new ArrayList<double[][]>(); //List of 2D arrays of output data, e.g. temp = slices.getFirst(); temp[time][freq]
+	private int sliceDurationLimit = 4096; //limit of slice duration in miliseconds. Currently 4096ms = 4.096s  -- TODO: decide an appropriate size
+	private int audioSliceSizeLimit; //limit to audio slice size in bytes
+	private int audioSliceElements; //limit to audio slice size in bytes
 	private SpectrogramJComponent sjc;
 
-	
+
 	public Spectrogram() {
-	
+
 	}
-	
+
 	public Spectrogram(String filepath) {
 		getDataFromWAV(filepath);
 	}
-	
+
 	public static void main(String[] args) {
 		Spectrogram s = new Spectrogram();
-		
+		s.getDataFromWAV("C:\\Users\\Ben\\lapwing.wav");
+		s.fillSpectro();
+
 	}
-	
+
 	private void getDataFromWAV(String filepath) { //fills audioSlices list with 
 		finalSliceIncomplete = false;
 		finalWindowIncomplete = false;
 		//TODO: work with stereo input
 		WAVExplorer w = new WAVExplorer(filepath);
 		double[] firstChannelData = w.getFirstChannelData();
-		int duration = w.getDuration();
+		int duration = w.getDuration()*1000; //WAVExplorer gives durations in seconds, must be converted into ms
 		sampleRate = w.getSampleRate();
+		System.out.println("Sample rate: "+sampleRate);
 		bitsPerSample = w.getBitsPerSample();
-		System.out.println("Audio slice size limit: "+audioSliceSizeLimit); //TODO: remove eventually
-		int windowsPerSlice = sliceDurationLimit/windowSize; //no. windows in slice = slice duration / window duration
-		int elementsPerWindow = audioSliceSizeLimit/(sliceDurationLimit/windowSize); //no. elements in window = slice size (bytes) / no. windows
-		int i = 0;
-		while (i*audioSliceSizeLimit < firstChannelData.length) { //takes care of all full slices
-			//want to add an array to ArrayList each time we fill one minute's worth
-			double[][] singleSlice = new double[windowsPerSlice][elementsPerWindow]; 
-			//TODO: allow for overlaps - what is a good overlap size?
-			for (int j = 0; j < singleSlice.length; j++) { //all of this is really inefficient!
-				for (int k = 0; k < singleSlice[0].length; k++) {
-					singleSlice[j][k] = firstChannelData[i*audioSliceSizeLimit+j*elementsPerWindow+k];
-				}
-			}
-			audioSlices.add(singleSlice);
-			i++;
-		}
+		System.out.println("Bits per sample: "+bitsPerSample);
+		windowSize = windowDuration*sampleRate*bitsPerSample/8000; //8000 = 8*1000 since 8 bits in byte and 1000 ms in a sec (rate is 1/sec). Not actually used directly because not an exact multiple of 2
+		audioSliceSizeLimit = sliceDurationLimit*sampleRate*bitsPerSample/8000;
+		audioSliceElements = audioSliceSizeLimit*8/bitsPerSample;
+		System.out.println("Audio slice size limit (bytes): "+audioSliceSizeLimit+", or (elements): " +audioSliceSizeLimit*8/bitsPerSample); //TODO: remove eventually
+		int windowsPerSlice = sliceDurationLimit/windowDuration; //no. windows in slice = slice duration / window duration
+		System.out.println("Windows per slice: "+windowsPerSlice);
+		int elementsPerWindow = windowSize*8/bitsPerSample; //no. elements in window = slice size (bytes) / no. windows
+		System.out.println("Window size (bytes): "+windowSize);
+		System.out.println("Elements per window: "+elementsPerWindow);
+		int i = 1;
 		
+		System.out.println("Length of WAV audio data is "+ firstChannelData.length + " elements, or "+ firstChannelData.length*bitsPerSample/8 + " bytes." );
+		System.out.println("There are "+firstChannelData.length/(elementsPerWindow*windowsPerSlice)+ " full slices in the data, or "+firstChannelData.length/elementsPerWindow+" full windows.");
+			while (i*audioSliceElements < firstChannelData.length) { //takes care of all full slices
+				System.out.println("Value of i is "+i+", value of i*audioSliceElements is "+audioSliceElements*i);
+				//want to add an array to ArrayList each time we fill one minute's worth
+				double[][] singleSlice = new double[windowsPerSlice][elementsPerWindow]; 
+				//TODO: allow for overlaps - what is a good overlap size?
+				for (int j = 0; j < windowsPerSlice; j++) { //all of this is really inefficient!
+					//System.out.println("Value of j is "+j);
+					for (int k = 0; k < elementsPerWindow; k++) {
+						//System.out.println("Value of k is "+k+", value of i*audioSliceSizeLimit+j*elementsPerWindow+k is "+i*audioSliceSizeLimit+j*elementsPerWindow+k);
+						singleSlice[j][k] = firstChannelData[(i-1)*audioSliceElements+j*elementsPerWindow+k];
+					}
+				}
+				audioSlices.add(singleSlice);
+				System.out.println("Audio slice added to list.");
+				i++;
+			}
+
+
 		//Now deal with the remaining data that is not enough to fill a slice
-		int capturedData = (i-1)*audioSliceSizeLimit;
-		finalSliceLength = firstChannelData.length - capturedData;
-		if  (finalSliceLength != 0) {
+		int capturedData = (i-1)*audioSliceElements;
+		finalSliceElements = firstChannelData.length - capturedData;
+		if  (finalSliceElements != 0) {
 			finalSliceIncomplete = true;
-			int remainingFullWindows = (int) Math.floor(finalSliceLength/windowSize);
-			int finalWindowLength = finalSliceLength-remainingFullWindows;
+			int remainingFullWindows = (int) Math.floor(finalSliceElements/elementsPerWindow); //TODO finalSliceLength in BYTES
+			System.out.println("Final slice length (elements): "+finalSliceElements+", window size (bytes): "+windowSize);
+			System.out.println("Remaining full windows: "+remainingFullWindows);
+			finalWindowElements = finalSliceElements-(remainingFullWindows*elementsPerWindow);
+			System.out.println("Final window length (elements): "+finalWindowElements);
 			double[][] finalSlice = new double[remainingFullWindows+1][elementsPerWindow];
-			if (finalWindowLength == 0) finalSlice = new double[remainingFullWindows][elementsPerWindow]; //don't add room for unfinished window if there aren't any
+			System.out.println("Elements per window: "+elementsPerWindow);
+			if (finalWindowElements == 0) finalSlice = new double[remainingFullWindows][elementsPerWindow]; //don't add room for unfinished window if there aren't any
 			for (int j = 0; j < remainingFullWindows; j++) {
 				for (int k = 0; k < elementsPerWindow; k++) {
-				finalSlice[j][k] = firstChannelData[capturedData+j*elementsPerWindow+k];
+					finalSlice[j][k] = firstChannelData[capturedData+j*elementsPerWindow+k];
 				}
 			}
-				
+
 			//Now deal with the remaining data that is not enough to fill a window
-				
-			if (finalWindowLength != 0) {
-				for (int k = 0; k < finalWindowLength; k++) {
+
+			if (finalWindowElements != 0) {
+				for (int k = 0; k < finalWindowElements; k++) {
 					finalSlice[remainingFullWindows][k] = firstChannelData[capturedData+remainingFullWindows*elementsPerWindow+k];
 				}
 				finalWindowIncomplete = true;
 			}
-			
+
 			audioSlices.add(finalSlice);
+			System.out.println("Final audio slice added to list.");
+
 		}
-		
+
 	}
-	
+
 	//remember that last 'slice' in list may only be part-full
-	
+
 	private void fillSpectro() {
 		for (double[][] slice : audioSlices) {
 			double[][] spectroSlice = new double[slice.length][slice[0].length]; //JTransforms requires that input arrays be padded with as many zeros as there are samples. TODO: check that there are always the same number of samples
@@ -101,28 +128,50 @@ public class Spectrogram{
 				spectroTransform(spectroSlice[window]); //store the STFT of the window in the same array once the samples have been populated 
 			}
 			spectroSlices.add(spectroSlice); //add the transformed slice to the list
+			System.out.println("Spectrogram slice added to list.");
 		}
 	}
- 	
+
 	private void hammingWindow(double[] samples) {
-		//TODO: document properly and check
-		//generate an appropriate window for the window size
+		//generate an appropriate Hamming window for the window size
 		int m = samples.length/2;
 		double[] hamming = new double[samples.length];
 		double r = Math.PI/(m+1);
 		for (int i = -m; i < m; i++) {
-                	w[m + i] = 0.5f + 0.5f * Math.cos(i * r);
+			hamming[m + i] = 0.5 + 0.5 * Math.cos(i * r);
 		}
-		//TODO: fix imports
-	
+		
+		//apply windowing function through multiplication with time-domain samples
 		for (int i = 0; i < samples.length; i++) {
-			samples[i] *= hamming[i]; //apply windowing function through multiplication with time-domain samples
+			samples[i] *= hamming[i]; 
 		}
 	}
+	
+	private void printHammingWindow(int length) {
+		double[] samples = new double[length];
+		for (int i = 0; i < samples.length; i++) {
+			samples[i] = 1;
+		}
+		System.out.println("Samples: ");
+		System.out.println();
+		for (int i = 0; i < samples.length; i++) {
+			System.out.print(samples[i]+"  ");
+		}
+		System.out.println();
 
- 	private void spectroTransform(double[] paddedSamples) { //calculate the squared STFT of the provided time-domain samples
- 		//TODO: this is the simplest 'test' implementation and is very inefficient and possibly buggy. making it more efficient will require analysing the JTransforms library
- 		/* From JTransforms documentation:
+		hammingWindow(samples);
+		
+		System.out.println("Window: ");
+		System.out.println();
+		for (int i = 0; i < samples.length; i++) {
+			System.out.print(samples[i]+"  ");
+		}
+		System.out.println();
+	}
+	
+
+	private void spectroTransform(double[] paddedSamples) { //calculate the squared STFT of the provided time-domain samples
+		/* From JTransforms documentation:
 		 * 
 		 * 
 		public void realForward(double[] a)
@@ -131,35 +180,35 @@ public class Spectrogram{
 		 a[2*k] = Re[k], 0<=k<n/2
 		 a[2*k+1] = Im[k], 0<k<n/2
 		 a[1] = Re[n/2]
-		
+
 		if n is odd then
 		 a[2*k] = Re[k], 0<=k<(n+1)/2
 		 a[2*k+1] = Im[k], 0<k<(n-1)/2
 		 a[1] = Im[(n-1)/2]
-		
+
 		This method computes only half of the elements of the real transform.
 		 The other half satisfies the symmetry condition. 
 		 If you want the full real forward transform, use realForwardFull.
 		  To get back the original data, use realInverse on the output of this method.
-		
+
 		 */
-		DoubleFFT_1D d = new DoubleFFT_1D(paddedSamples.length / 2); //initialise with n, where n = data size TODO: this ok??
+		DoubleFFT_1D d = new DoubleFFT_1D(paddedSamples.length / 2); //initialise with n, where n = data size
 		d.realForward(paddedSamples);
-		
-		//Now the STFT has been done, need to square it... so here's an ugly way of doing so:
-		
-		for (int i = 0; i < paddedSamples.length / 2 + 1; i++) { //TODO: +1? really?
+
+		//Now the STFT has been calculated, need to square it:
+
+		for (int i = 0; i < paddedSamples.length / 2; i++) {
 			paddedSamples[i] *= paddedSamples[i];
 		}
- 	}
- 	
+	}
+
 	private void getNextDrawableChunk() {
 		//TODO -- allows SpectrogramComponent to ask for next data to draw
 	}
-	
+
 	private void getDrawableChunk(int time) {
 		//TODO
 	}
-	
+
 
 }
