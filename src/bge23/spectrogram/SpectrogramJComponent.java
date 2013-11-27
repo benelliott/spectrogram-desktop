@@ -1,8 +1,6 @@
 package bge23.spectrogram;
 
-import java.awt.BorderLayout;
 import java.awt.Color;
-import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
@@ -17,8 +15,6 @@ import javax.sound.sampled.Clip;
 import javax.sound.sampled.LineUnavailableException;
 import javax.sound.sampled.UnsupportedAudioFileException;
 import javax.swing.JComponent;
-import javax.swing.JFrame;
-import javax.swing.JPanel;
 
 public class SpectrogramJComponent extends JComponent {
 
@@ -32,9 +28,12 @@ public class SpectrogramJComponent extends JComponent {
 	private Spectrogram spec;
 	private int windowDuration; //draw a new window in time with the audio file
 	private int windowsDrawn = 0; //how many windows have been drawn already
-	private int pixelWidth = 4;
+	private int pixelWidth;
+	private Timer timer;
+	private Clip c;
 
-	public SpectrogramJComponent(String filepath){
+	public SpectrogramJComponent(String filepath, int pixelWidth) throws UnsupportedAudioFileException, IOException, LineUnavailableException{
+		this.pixelWidth = pixelWidth;
 		spec = new Spectrogram(filepath);
 		windowDuration = spec.getWindowDuration();
 		System.out.println("Number of windows in input: "+spec.getWindowsInFile());
@@ -45,19 +44,22 @@ public class SpectrogramJComponent extends JComponent {
 		g2buffer.setColor(Color.BLACK);
 		g2buffer.clearRect(0,0,width,height);
 
-		Timer timer = new Timer();
+		timer = new Timer();
 		timer.schedule(new TimerTask() {
 			public void run() { //timer executes 'step()' method on each window-length time interval, beginning immediately [0 delay]
 				try{step();} catch (ArrayIndexOutOfBoundsException e) {cancel();}
 			}
 		}, 0, windowDuration);
 		System.out.println("WINDOW DURATION " +windowDuration);
+		
+		//play wav file simultaneously with showing spectrogram:
+		AudioInputStream a = AudioSystem.getAudioInputStream(new File(filepath));
+		c = AudioSystem.getClip();
+		c.open(a);
+		c.start();
 	}
 
 	public void step() { //'public' to allow access from timer thread
-
-
-
 		double[] spectroData = spec.getSpectrogramWindow(windowsDrawn); //remember that this array is only half full, as required by JTransforms
 		int elements = spectroData.length/2;
 		int pixelHeight = (height/elements > 1) ? height/elements : 1;
@@ -67,50 +69,43 @@ public class SpectrogramJComponent extends JComponent {
 		g2dshifted.drawImage(bi, -pixelWidth, 0, null);
 		g2current.drawImage(shifted, 0, 0, width, height, null);
 		
-		
 		for (int i = elements-1; i >= 0; i--) {
 			int val = (int)(255-(spectroData[i]/500000d)%255); //TODO: scale this properly!
 			g2current.setColor(new Color(val,val,val));
-			g2current.fillRect(width-pixelWidth, (elements-1-i)*pixelHeight, pixelWidth, pixelHeight); 
+			g2current.fillRect(width-pixelWidth, (elements-i)*pixelHeight, pixelWidth, pixelHeight); //TODO: do right
 		}
-
 
 		g2buffer.drawImage(bi, 0, 0, width, height, null);
 
 		System.out.println("Windows drawn: "+windowsDrawn);
 		windowsDrawn++;
 		repaint();
-
+	}
+	
+	public void scroll(int offset) {
+		try {
+			synchronized(timer){
+				timer.wait(); //stop the timer from drawing
+				c.stop(); //stop the audio -- this does not restart it
+			}
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+		windowsDrawn+=offset;
+		//TODO: reset display properly
+		step();
+	}
+	
+	public void resume() {
+		synchronized(timer){
+			timer.notify(); 
+			c.start(); //stop the audio
+		}
 	}
 
 	public void paintComponent(Graphics g) {
 		g.drawImage(buffer, 0, 0, null);
 	}
 
-	public static void main(String[] args) throws UnsupportedAudioFileException, IOException, LineUnavailableException {
-		String filepath = "C:\\Users\\Ben\\Downloads\\cuckoo.wav";
-
-		SpectrogramJComponent s = new SpectrogramJComponent(filepath);  //get data from specified file
-
-		final JPanel panel = new JPanel(new BorderLayout()); //container for SpectrogramJComponent
-
-		s.setPreferredSize(new Dimension(width, height));
-		panel.add(s, BorderLayout.CENTER);
-
-		final JFrame frame = new JFrame("Spectrogram"); //create window to hold everything
-		frame.getContentPane().add(panel);
-		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		frame.pack(); //scale window to fit subcomponents
-		frame.setLocationRelativeTo(null);
-
-		//play wav file simultaneously with showing spectrogram:
-		AudioInputStream a = AudioSystem.getAudioInputStream(new File(filepath));
-		Clip c = AudioSystem.getClip();
-		c.open(a);
-
-
-		frame.setVisible(true);
-		c.start();
-	}
 
 }
