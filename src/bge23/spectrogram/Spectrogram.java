@@ -8,8 +8,7 @@ import edu.emory.mathcs.jtransforms.fft.DoubleFFT_1D;
 
 public class Spectrogram {
 	private ArrayList<double[][]> audioSlices = new ArrayList<double[][]>(); //List of 2D arrays of input data with syntax slice[window number][window element]
-	private boolean finalSliceIncomplete = false;
-	private boolean finalWindowIncomplete = false;
+	@SuppressWarnings("unused")
 	private int fileDuration; //in miliseconds
 	private int finalSliceElements;
 	private int finalWindowElements;
@@ -24,7 +23,6 @@ public class Spectrogram {
 	private int sliceDurationLimit = 4096; //limit of slice duration in miliseconds. Currently 4096ms = 4.096s  -- TODO: decide an appropriate size
 	private double audioSliceSizeLimit; //limit to audio slice size in bytes
 	private int audioSliceElements; //limit to audio slice size in bytes
-	private SpectrogramJComponent sjc;
 
 
 	public Spectrogram() {
@@ -36,17 +34,10 @@ public class Spectrogram {
 		fillSpectro();
 	}
 
-	public static void ismain(String[] args) {
-		Spectrogram s = new Spectrogram("C:\\Users\\Ben\\lapwing.wav");
-	}
-
 	private void getDataFromWAV(String filepath) { //fills audioSlices list with 
-		finalSliceIncomplete = false;
-		finalWindowIncomplete = false;
 		//TODO: work with stereo input
 		WAVExplorer w = new WAVExplorer(filepath);
 		double[] firstChannelData = w.getFirstChannelData();
-		int duration = w.getDuration()*1000; //WAVExplorer gives durations in seconds, must be converted into ms
 		sampleRate = w.getSampleRate();
 		System.out.println("Sample rate: "+sampleRate);
 		bitsPerSample = w.getBitsPerSample();
@@ -88,7 +79,6 @@ public class Spectrogram {
 		int capturedData = (i-1)*audioSliceElements;
 		finalSliceElements = firstChannelData.length - capturedData;
 		if  (finalSliceElements != 0) {
-			finalSliceIncomplete = true;
 			int remainingFullWindows = (int) Math.floor(finalSliceElements/elementsPerWindow); //TODO finalSliceLength in BYTES
 			System.out.println("Final slice length (elements): "+finalSliceElements+", window size (bytes): "+windowSize);
 			System.out.println("Remaining full windows: "+remainingFullWindows);
@@ -109,7 +99,6 @@ public class Spectrogram {
 				for (int k = 0; k < finalWindowElements; k++) {
 					finalSlice[remainingFullWindows][k] = firstChannelData[capturedData+remainingFullWindows*elementsPerWindow+k];
 				}
-				finalWindowIncomplete = true;
 			}
 
 			audioSlices.add(finalSlice);
@@ -151,6 +140,7 @@ public class Spectrogram {
 		}
 	}
 	
+	@SuppressWarnings("unused")
 	private void printHammingWindow(int length) {
 		double[] samples = new double[length];
 		for (int i = 0; i < samples.length; i++) {

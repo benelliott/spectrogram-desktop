@@ -6,10 +6,8 @@ import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
-import java.awt.image.WritableRaster;
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -23,6 +21,8 @@ import javax.swing.JFrame;
 import javax.swing.JPanel;
 
 public class SpectrogramJComponent extends JComponent {
+
+	private static final long serialVersionUID = 1L;
 	private static final int width = 1024; //width of spectrogram component in pixels
 	private static final int height = 768; //width of spectrogram component in pixels
 	private BufferedImage buffer;
