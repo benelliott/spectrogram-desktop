@@ -24,15 +24,15 @@ import javax.swing.JPanel;
 
 public class SpectrogramJComponent extends JComponent {
 	private static final int width = 1024; //width of spectrogram component in pixels
-	private static final int height = 480; //width of spectrogram component in pixels
-	private BufferedImage buffer; //TODO IDK
+	private static final int height = 768; //width of spectrogram component in pixels
+	private BufferedImage buffer;
 	private BufferedImage bi;
 	private Graphics2D g2buffer;
 	private Graphics2D g2current; //current buffer to display;
 	private Spectrogram spec;
 	private int windowDuration; //draw a new window in time with the audio file
 	private int windowsDrawn = 0; //how many windows have been drawn already
-
+	private int pixelWidth = 4;
 
 	public SpectrogramJComponent(String filepath){
 		spec = new Spectrogram(filepath);
@@ -54,61 +54,26 @@ public class SpectrogramJComponent extends JComponent {
 		System.out.println("WINDOW DURATION " +windowDuration);
 	}
 
-	/*
-	public void step1() { //'public' to allow access from timer thread
-		ArrayList<WritableRaster> imglist = new ArrayList<WritableRaster>();
-
-		//keep drawing the spectrogram windows for as long as there are no exceptions
-		if (width-windowsDrawn*4 <= 0) {
-			WritableRaster w = bi.getRaster();
-			imglist.add(w);
-			bi = new BufferedImage(width,height,BufferedImage.TYPE_INT_RGB);
-			g2current = bi.createGraphics();
-		}
-
-		double[] spectroData = spec.getSpectrogramWindow(windowsDrawn); //remember that this array is only half full, as required by JTransforms
-		int elements = spectroData.length/2;
-		for (int i = 0; i < elements; i++) {
-			int val = (int)(256-(spectroData[i]/1000000d)%256);
-			g2current.setColor(new Color(val,val,val));
-			g2current.fillRect(windowsDrawn*4, i*(height/elements), 4, height/elements); 
-		}
-
-		g2buffer.drawImage(bi, width - windowsDrawn*4, 0, width, height, null);
-
-		System.out.println("Windows drawn: "+windowsDrawn);
-		windowsDrawn++;
-		repaint();
-
-	}
-	*/
 	public void step() { //'public' to allow access from timer thread
 
-	
+
 
 		double[] spectroData = spec.getSpectrogramWindow(windowsDrawn); //remember that this array is only half full, as required by JTransforms
 		int elements = spectroData.length/2;
+		int pixelHeight = (height/elements > 1) ? height/elements : 1;
+
+		BufferedImage shifted = new BufferedImage(width,height,BufferedImage.TYPE_INT_RGB);
+		Graphics2D g2dshifted = shifted.createGraphics();
+		g2dshifted.drawImage(bi, -pixelWidth, 0, null);
+		g2current.drawImage(shifted, 0, 0, width, height, null);
 		
-		if (windowsDrawn*4 <= width) {
-			for (int i = 0; i < elements; i++) {
-				int val = (int)(256-(spectroData[i]/1000000d)%256);
-				g2current.setColor(new Color(val,val,val));
-				g2current.fillRect(windowsDrawn*4, i*(height/elements), 4, height/elements); 
-			}
+		
+		for (int i = elements-1; i >= 0; i--) {
+			int val = (int)(255-(spectroData[i]/500000d)%255); //TODO: scale this properly!
+			g2current.setColor(new Color(val,val,val));
+			g2current.fillRect(width-pixelWidth, (elements-1-i)*pixelHeight, pixelWidth, pixelHeight); 
 		}
-		
-		else {
-			BufferedImage shifted = new BufferedImage(width,height,BufferedImage.TYPE_INT_RGB);
-			Graphics2D g2dshifted = shifted.createGraphics();
-			g2dshifted.drawImage(bi, -4, 0, null);
-			g2current.drawImage(shifted, 0, 0, width, height, null);
-			for (int i = 0; i < elements; i++) {
-				int val = (int)(256-(spectroData[i]/1000000d)%256);
-				g2current.setColor(new Color(val,val,val));
-				g2current.fillRect(width-4, i*(height/elements), 4, height/elements); 
-			}
-		}
-		
+
 
 		g2buffer.drawImage(bi, 0, 0, width, height, null);
 
@@ -118,20 +83,18 @@ public class SpectrogramJComponent extends JComponent {
 
 	}
 
-	public void paintComponent(Graphics g) { //TODO: I don't really understand this tbh
+	public void paintComponent(Graphics g) {
 		g.drawImage(buffer, 0, 0, null);
 	}
 
 	public static void main(String[] args) throws UnsupportedAudioFileException, IOException, LineUnavailableException {
-		//String filepath = args[0];
-		String filepath = "C:\\Users\\Ben\\lapwing.wav";
-		//String filepath = "C:\\Users\\Ben\\Documents\\Lecture Recordings\\DSP 1.wav";
+		String filepath = "C:\\Users\\Ben\\Downloads\\cuckoo.wav";
 
 		SpectrogramJComponent s = new SpectrogramJComponent(filepath);  //get data from specified file
 
 		final JPanel panel = new JPanel(new BorderLayout()); //container for SpectrogramJComponent
 
-		s.setPreferredSize(new Dimension(width, height-128)); //TODO why?!
+		s.setPreferredSize(new Dimension(width, height));
 		panel.add(s, BorderLayout.CENTER);
 
 		final JFrame frame = new JFrame("Spectrogram"); //create window to hold everything

@@ -36,7 +36,7 @@ public class WAVExplorer {
 			
 			sampleRate = wavFile.readInt(); //at offset 24 so no seeking necessary
 			sampleRate = Integer.reverseBytes(sampleRate); //little-endian
-			
+			System.out.println("Sample rate: "+sampleRate);
 			wavFile.seek(34);
 			bitsPerSample = wavFile.readByte();
 			if (bitsPerSample > 32) {

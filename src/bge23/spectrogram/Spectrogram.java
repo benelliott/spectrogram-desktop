@@ -22,7 +22,7 @@ public class Spectrogram {
 	private int windowsInFile;
 	private ArrayList<double[][]> spectroSlices = new ArrayList<double[][]>(); //List of 2D arrays of output data, e.g. temp = slices.getFirst(); temp[time][freq]
 	private int sliceDurationLimit = 4096; //limit of slice duration in miliseconds. Currently 4096ms = 4.096s  -- TODO: decide an appropriate size
-	private int audioSliceSizeLimit; //limit to audio slice size in bytes
+	private double audioSliceSizeLimit; //limit to audio slice size in bytes
 	private int audioSliceElements; //limit to audio slice size in bytes
 	private SpectrogramJComponent sjc;
 
@@ -53,8 +53,8 @@ public class Spectrogram {
 		fileDuration = w.getDuration()*1000; //given in seconds, want miliseconds
 		System.out.println("Bits per sample: "+bitsPerSample);
 		windowSize = windowDuration*sampleRate*bitsPerSample/8000; //8000 = 8*1000 since 8 bits in byte and 1000 ms in a sec (rate is 1/sec). Not actually used directly because not an exact multiple of 2
-		audioSliceSizeLimit = sliceDurationLimit*sampleRate*bitsPerSample/8000;
-		audioSliceElements = audioSliceSizeLimit*8/bitsPerSample;
+		audioSliceSizeLimit = ((double)sliceDurationLimit)*((double)sampleRate)*((double)bitsPerSample)/8000d;
+		audioSliceElements = (int)(audioSliceSizeLimit*8d/((double)bitsPerSample));
 		System.out.println("Audio slice size limit (bytes): "+audioSliceSizeLimit+", or (elements): " +audioSliceSizeLimit*8/bitsPerSample); //TODO: remove eventually
 		windowsPerSlice = sliceDurationLimit/windowDuration; //no. windows in slice = slice duration / window duration
 		System.out.println("Windows per slice: "+windowsPerSlice);
