@@ -205,15 +205,13 @@ public class Spectrogram {
 			paddedSamples[i] *= paddedSamples[i];
 		}
 	}
-
-	private void getNextDrawableChunk() {
-		//TODO -- allows SpectrogramComponent to ask for next data to draw
-	}
-
-	private void getDrawableChunk(int time) {
-		//TODO
-	}
 	
+	public double[] getSpectrogramWindow(int windowOffset) { //returns the spectrogram data for the requested window
+		int sliceNumber = windowOffset/windowsPerSlice;
+		return spectroSlices.get(sliceNumber)[windowOffset%windowsPerSlice];
+		
+	}
+
 	public int getWindowDuration() {
 		return windowDuration;
 	}
@@ -222,12 +220,7 @@ public class Spectrogram {
 		return elementsPerWindow;
 	}
 
-	public double[] getSpectrogramWindow(int windowOffset) { //returns the spectrogram data for the requested window
-		int sliceNumber = windowOffset/windowsPerSlice;
-		return spectroSlices.get(sliceNumber)[windowOffset%windowsPerSlice];
-		
-	}
-
+	
 	public int getWindowsInFile() {
 		return windowsInFile;
 	}

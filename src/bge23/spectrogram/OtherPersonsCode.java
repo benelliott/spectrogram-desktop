@@ -46,7 +46,7 @@ public class OtherPersonsCode extends JComponent {
         g2buffer.clearRect(0, 0, W, H);
         colors = new Color[256];
         for (int i = 0; i < colors.length; i++) {
-            colors[i] = new Color((i*i)%5, (i*i)%256,(i*i)%25); // grayscale
+            colors[i] = new Color((i*i)%150, (i*i)%25,(i*i)%25); // grayscale
         }
         Timer timer = new Timer();
         timer.schedule(new TimerTask() {
@@ -62,7 +62,7 @@ public class OtherPersonsCode extends JComponent {
 
     // executes on the timer thread
     public void step() {
-        position = (position + STEP) % H;
+        position = (position + STEP) % W;
         if (position == 0) {
             System.out.println("swap");
             g2current = (g2current == g2img1) ? g2img2 : g2img1;
@@ -86,7 +86,7 @@ public class OtherPersonsCode extends JComponent {
         repaint();
     }
 
-    public static void ismain(String[] args) {
+    public static void dmain(String[] args) {
         final JPanel panel = new JPanel(new BorderLayout());
         OtherPersonsCode spectogram = new OtherPersonsCode();
         spectogram.setPreferredSize(new Dimension(W, H));
