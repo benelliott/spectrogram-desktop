@@ -201,6 +201,31 @@ public class Spectrogram {
 		return spectroSlices.get(sliceNumber)[windowOffset%windowsPerSlice];
 		
 	}
+	
+	public double[] getCompositeWindow(int windowOffset) {
+		//assumes hop size is half of window size
+		//last window will just throw an ArrayIndexOutOfBoundsException and stop the drawing
+		double[] toReturn = new double[elementsPerWindow];
+
+			double[] currentWindow = getSpectrogramWindow(windowOffset);
+			double[] nextWindow = getSpectrogramWindow(windowOffset+1);
+			double[] prevWindow;
+			if (windowOffset == 0) {
+				prevWindow = new double[elementsPerWindow]; //no previous window to look at
+	
+			}
+			else prevWindow = getSpectrogramWindow(windowOffset-1);
+			
+			for (int i = 0; i < elementsPerWindow/2; i++) {
+				toReturn[i] = 0.5*(currentWindow[i] + prevWindow[i]); //could get rid of 0.5s
+			}
+			for (int i = elementsPerWindow/2; i < elementsPerWindow; i++) {
+				toReturn[i] = 0.5*(currentWindow[i] + nextWindow[i]);
+			}
+			
+		
+		return toReturn;
+	}
 
 	public int getWindowDuration() {
 		return windowDuration;

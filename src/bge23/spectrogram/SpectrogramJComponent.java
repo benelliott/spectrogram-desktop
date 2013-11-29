@@ -21,6 +21,8 @@ public class SpectrogramJComponent extends JComponent {
 	private static final long serialVersionUID = 1L;
 	private static final int width = 1024; //width of spectrogram component in pixels
 	private static final int height = 768; //width of spectrogram component in pixels
+	private final double maxAmplitude = 300000000;
+	
 	private BufferedImage buffer;
 	private BufferedImage bi;
 	private Graphics2D g2buffer;
@@ -31,6 +33,7 @@ public class SpectrogramJComponent extends JComponent {
 	private int pixelWidth;
 	private Timer timer;
 	private Clip c;
+	private Color[] heatMap;
 
 	public SpectrogramJComponent(String filepath, int pixelWidth) throws UnsupportedAudioFileException, IOException, LineUnavailableException{
 		this.pixelWidth = pixelWidth;
@@ -43,7 +46,16 @@ public class SpectrogramJComponent extends JComponent {
 		g2current = bi.createGraphics();
 		g2buffer.setColor(Color.BLACK);
 		g2buffer.clearRect(0,0,width,height);
-
+		
+		heatMap = new Color[256];
+		for (int i = 0; i < 256; i++) {
+			heatMap[i] = new Color(
+					i+(int)Math.floor(0.2*(255-i)), //red
+					(int)(2*(127.5f-Math.abs(i-127.5f))), //green is 127.5 - |i-127.5| (draw it - peak at 127.5)
+					255-i  //blue
+					);
+		}
+		
 		timer = new Timer();
 		timer.schedule(new TimerTask() {
 			public void run() { //timer executes 'step()' method on each window-length time interval, beginning immediately [0 delay]
@@ -60,7 +72,7 @@ public class SpectrogramJComponent extends JComponent {
 	}
 
 	public void step() { //'public' to allow access from timer thread
-		double[] spectroData = spec.getSpectrogramWindow(windowsDrawn); //remember that this array is only half full, as required by JTransforms
+		double[] spectroData = spec.getCompositeWindow(windowsDrawn); //remember that this array is only half full, as required by JTransforms
 		int elements = spectroData.length/2;
 		int pixelHeight = (height/elements > 1) ? height/elements : 1;
 
@@ -70,8 +82,9 @@ public class SpectrogramJComponent extends JComponent {
 		g2current.drawImage(shifted, 0, 0, width, height, null);
 		
 		for (int i = elements-1; i >= 0; i--) {
-			int val = (int)(255-(spectroData[i]/500000d)%255); //TODO: scale this properly!
+			int val = 255-cappedValue(spectroData[i]); //TODO: scale this properly!
 			g2current.setColor(new Color(val,val,val));
+			//g2current.setColor(heatMap[val]);
 			g2current.fillRect(width-pixelWidth, (elements-i)*pixelHeight, pixelWidth, pixelHeight); //TODO: do right
 		}
 
@@ -80,6 +93,14 @@ public class SpectrogramJComponent extends JComponent {
 		System.out.println("Windows drawn: "+windowsDrawn);
 		windowsDrawn++;
 		repaint();
+	}
+	
+	private int cappedValue(double d) {
+		//return an integer capped at 255 representing the given double value
+		double dAbs = Math.abs(d);
+		if (dAbs > maxAmplitude) return 255;
+		else return (int)(dAbs*255d/maxAmplitude);
+		
 	}
 	
 	public void scroll(int offset) {
@@ -91,9 +112,23 @@ public class SpectrogramJComponent extends JComponent {
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}
-		windowsDrawn+=offset;
-		//TODO: reset display properly
-		step();
+		
+		//TODO: reset display properly - this still doesn't work
+		int oldWindowsDrawn = windowsDrawn;
+		int currentLeftmostWindow = windowsDrawn-(width/pixelWidth);
+		final int newLeftmostWindow = currentLeftmostWindow + offset;
+		windowsDrawn = newLeftmostWindow;
+		Timer timer2 = new Timer();
+		timer2.schedule(new TimerTask() {
+			public void run() { //timer executes 'step()' method on each window-length time interval, beginning immediately [0 delay]
+				try {
+					if (windowsDrawn < newLeftmostWindow+(width/pixelWidth)) step();
+					else cancel();
+				} catch (ArrayIndexOutOfBoundsException e) {
+					cancel();
+				}
+			}
+		}, 0, 10); //TODO: choose a good value for '10'
 	}
 	
 	public void resume() {

@@ -29,9 +29,17 @@ public class DragPanel extends JPanel implements MouseMotionListener {
 		sjc.addMouseListener(new MouseAdapter(){
 			@Override
 			public void mousePressed(MouseEvent e) {
+				System.out.println("pressed");
 				dragStartPt = e.getPoint();
 				repaint();
-
+			}
+			
+			public void mouseReleased(MouseEvent e) {
+				System.out.println("released");
+				Point dragEndPt = e.getPoint();
+				int horizontalMov = e.getX() - dragStartPt.x;
+				windowChange = horizontalMov/pixelsPerWindow;
+				sjc.scroll(windowChange);
 			}
 		});
 		sjc.addMouseMotionListener(this);
@@ -39,6 +47,7 @@ public class DragPanel extends JPanel implements MouseMotionListener {
 
 	@Override
 	public void mouseDragged(MouseEvent e) {
+		System.out.println("dragged");
 		int horizontalMov = e.getX() - dragStartPt.x;
 		windowChange = horizontalMov/pixelsPerWindow;
 		sjc.scroll(windowChange);
@@ -51,6 +60,7 @@ public class DragPanel extends JPanel implements MouseMotionListener {
 		// Auto-generated method stub
 
 	}
+	
 	
 	public static void main(String[] args) throws UnsupportedAudioFileException, IOException, LineUnavailableException {
 		//String filepath = "C:\\Users\\Ben\\Downloads\\cuckoo.wav";
