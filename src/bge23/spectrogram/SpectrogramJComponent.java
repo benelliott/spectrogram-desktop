@@ -21,7 +21,7 @@ public class SpectrogramJComponent extends JComponent {
 	private static final long serialVersionUID = 1L;
 	private static final int width = 1024; //width of spectrogram component in pixels
 	private static final int height = 768; //width of spectrogram component in pixels
-	private final double maxAmplitude = 300000000;
+	private final double maxAmplitude = 100000000000d;
 	
 	private BufferedImage buffer;
 	private BufferedImage bi;
@@ -99,7 +99,12 @@ public class SpectrogramJComponent extends JComponent {
 		//return an integer capped at 255 representing the given double value
 		double dAbs = Math.abs(d);
 		if (dAbs > maxAmplitude) return 255;
-		else return (int)(dAbs*255d/maxAmplitude);
+		if (dAbs < 1) return 0;
+		double ml = Math.log10(maxAmplitude);
+		double dl = Math.log10(dAbs);
+		return (int)(dl*255/ml); //decibel is a log scale, want something linear. second term is a bit of ugly tweaking
+		//return (int) (dAbs*255/maxAmplitude)); 
+		
 		
 	}
 	

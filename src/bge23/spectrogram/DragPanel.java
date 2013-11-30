@@ -25,7 +25,7 @@ public class DragPanel extends JPanel implements MouseMotionListener {
 	private Point dragStartPt;
 	private int windowChange;
 	
-	DragPanel() {
+	public DragPanel() {
 		sjc.addMouseListener(new MouseAdapter(){
 			@Override
 			public void mousePressed(MouseEvent e) {
