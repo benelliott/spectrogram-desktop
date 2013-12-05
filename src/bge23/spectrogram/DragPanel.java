@@ -25,7 +25,10 @@ public class DragPanel extends JPanel implements MouseMotionListener {
 	private Point dragStartPt;
 	private int windowChange;
 	
-	public DragPanel() {
+	public DragPanel(String filepath) throws UnsupportedAudioFileException, IOException, LineUnavailableException {
+		sjc = new SpectrogramJComponent(filepath, pixelsPerWindow);  //get data from specified file
+		sjc.setPreferredSize(new Dimension(width, height));
+		add(sjc, BorderLayout.CENTER);
 		sjc.addMouseListener(new MouseAdapter(){
 			@Override
 			public void mousePressed(MouseEvent e) {
@@ -59,31 +62,6 @@ public class DragPanel extends JPanel implements MouseMotionListener {
 	public void mouseMoved(MouseEvent e) {
 		// Auto-generated method stub
 
-	}
-	
-	
-	public static void main(String[] args) throws UnsupportedAudioFileException, IOException, LineUnavailableException {
-		//String filepath = "C:\\Users\\Ben\\Downloads\\cuckoo.wav";
-		String filepath = "C:\\Users\\Ben\\lapwing.wav";
-		
-		sjc = new SpectrogramJComponent(filepath, pixelsPerWindow);  //get data from specified file
-
-		final DragPanel d = new DragPanel(); //container for SpectrogramJComponent
-
-		sjc.setPreferredSize(new Dimension(width, height));
-		d.add(sjc, BorderLayout.CENTER);
-
-		final JFrame frame = new JFrame("Spectrogram"); //create window to hold everything
-		frame.getContentPane().add(d);
-		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		frame.pack(); //scale window to fit subcomponents
-		frame.setLocationRelativeTo(null);
-
-
-
-
-		frame.setVisible(true);
-		
 	}
 
 }

@@ -83,8 +83,8 @@ public class SpectrogramJComponent extends JComponent {
 		
 		for (int i = elements-1; i >= 0; i--) {
 			int val = 255-cappedValue(spectroData[i]); //TODO: scale this properly!
-			g2current.setColor(new Color(val,val,val));
-			//g2current.setColor(heatMap[val]);
+			//g2current.setColor(new Color(val,val,val));
+			g2current.setColor(heatMap[255-val]);
 			g2current.fillRect(width-pixelWidth, (elements-i)*pixelHeight, pixelWidth, pixelHeight); //TODO: do right
 		}
 
@@ -100,10 +100,10 @@ public class SpectrogramJComponent extends JComponent {
 		double dAbs = Math.abs(d);
 		if (dAbs > maxAmplitude) return 255;
 		if (dAbs < 1) return 0;
-		double ml = Math.log10(maxAmplitude);
-		double dl = Math.log10(dAbs);
+		double ml = Math.log1p(maxAmplitude);
+		double dl = Math.log1p(dAbs);
 		return (int)(dl*255/ml); //decibel is a log scale, want something linear. second term is a bit of ugly tweaking
-		//return (int) (dAbs*255/maxAmplitude)); 
+		//return (int) (dAbs*255/maxAmplitude); 
 		
 		
 	}
