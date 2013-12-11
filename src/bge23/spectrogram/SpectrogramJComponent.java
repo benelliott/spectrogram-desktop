@@ -21,7 +21,7 @@ public class SpectrogramJComponent extends JComponent {
 	private static final long serialVersionUID = 1L;
 	private static final int width = 1024; //width of spectrogram component in pixels
 	private static final int height = 768; //width of spectrogram component in pixels
-	private final double maxAmplitude = 100000000000d;
+	private double maxAmplitude = 1;//= 100000000000d; //largest value seen so far, scale colours accordingly
 	
 	private BufferedImage buffer;
 	private BufferedImage bi;
@@ -50,7 +50,7 @@ public class SpectrogramJComponent extends JComponent {
 		heatMap = new Color[256];
 		for (int i = 0; i < 256; i++) {
 			heatMap[i] = new Color(
-					i+(int)Math.floor(0.2*(255-i)), //red
+					i, //red
 					(int)(2*(127.5f-Math.abs(i-127.5f))), //green is 127.5 - |i-127.5| (draw it - peak at 127.5)
 					255-i  //blue
 					);
@@ -82,9 +82,10 @@ public class SpectrogramJComponent extends JComponent {
 		g2current.drawImage(shifted, 0, 0, width, height, null);
 		
 		for (int i = elements-1; i >= 0; i--) {
+			if (maxAmplitude < spectroData[i]) maxAmplitude = spectroData[i];
 			int val = 255-cappedValue(spectroData[i]); //TODO: scale this properly!
-			//g2current.setColor(new Color(val,val,val));
-			g2current.setColor(heatMap[255-val]);
+			//g2current.setColor(new Color(val,val,val)); //greyscale
+			g2current.setColor(heatMap[255-val]); //colour heat map
 			g2current.fillRect(width-pixelWidth, (elements-i)*pixelHeight, pixelWidth, pixelHeight); //TODO: do right
 		}
 
@@ -102,7 +103,7 @@ public class SpectrogramJComponent extends JComponent {
 		if (dAbs < 1) return 0;
 		double ml = Math.log1p(maxAmplitude);
 		double dl = Math.log1p(dAbs);
-		return (int)(dl*255/ml); //decibel is a log scale, want something linear. second term is a bit of ugly tweaking
+		return (int)(dl*255/ml); //decibel is a log scale, want something linear
 		//return (int) (dAbs*255/maxAmplitude); 
 		
 		
