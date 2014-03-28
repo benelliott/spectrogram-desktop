@@ -45,7 +45,7 @@ public class SpectroFrame extends JFrame {
 	}
 
 	public static void main(String[] args) throws UnsupportedAudioFileException, IOException, LineUnavailableException {
-		String filepath = "C:\\Users\\Ben\\PileatedWoodpecker.wav";
+		String filepath = "C:\\Users\\Ben\\lapwing.wav";
 		SpectroFrame s = new SpectroFrame(filepath);
 		s.setVisible(true);
 	}

@@ -19,13 +19,11 @@ import javax.swing.JComponent;
 public class SpectrogramJComponent extends JComponent {
 
 	private static final long serialVersionUID = 1L;
-	private static final int width = 1024; //width of spectrogram component in pixels
-	private static final int height = 768; //width of spectrogram component in pixels
+	private static final int width = 800; //width of spectrogram component in pixels
+	private static final int height = 704; //width of spectrogram component in pixels
 	private double maxAmplitude = 1;//= 100000000000d; //largest value seen so far, scale colours accordingly
-	
-	private BufferedImage buffer;
+	private int contrast = 3;
 	private BufferedImage bi;
-	private Graphics2D g2buffer;
 	private Graphics2D g2current; //current buffer to display;
 	private Spectrogram spec;
 	private int windowDuration; //draw a new window in time with the audio file
@@ -40,12 +38,8 @@ public class SpectrogramJComponent extends JComponent {
 		spec = new Spectrogram(filepath);
 		windowDuration = spec.getWindowDuration();
 		System.out.println("Number of windows in input: "+spec.getWindowsInFile());
-		buffer = new BufferedImage(width,height,BufferedImage.TYPE_INT_RGB);
 		bi = new BufferedImage(width,height,BufferedImage.TYPE_INT_RGB);
-		g2buffer = buffer.createGraphics();
 		g2current = bi.createGraphics();
-		g2buffer.setColor(Color.BLACK);
-		g2buffer.clearRect(0,0,width,height);
 		
 		heatMap = new Color[256];
 		for (int i = 0; i < 256; i++) {
@@ -53,15 +47,23 @@ public class SpectrogramJComponent extends JComponent {
 					i, //red
 					(int)(2*(127.5f-Math.abs(i-127.5f))), //green is 127.5 - |i-127.5| (draw it - peak at 127.5)
 					255-i  //blue
-					);
+				);
 		}
 		
+//		for (int i = 0; i < 256; i++) {
+//			if (0 <= i && i <= 31) heatMap[i] = new Color(255,255,204);
+//			if (32 <= i && i <= 63) heatMap[i] = new Color(255,237,160);
+//			if (64 <= i && i <= 95) heatMap[i] = new Color(254,217,118);
+//			if (96 <= i && i <= 127) heatMap[i] = new Color(254,178,76);
+//			if (128 <= i && i <= 159) heatMap[i] = new Color(253,141,60);
+//			if (160 <= i && i <= 191) heatMap[i] = new Color(252,78,42);
+//			if (192 <= i && i <= 223) heatMap[i] = new Color(227,26,28);
+//			if (224 <= i && i <= 255) heatMap[i] = new Color(177,0,38);
+//
+//		}
+		
 		timer = new Timer();
-		timer.schedule(new TimerTask() {
-			public void run() { //timer executes 'step()' method on each window-length time interval, beginning immediately [0 delay]
-				try{step();} catch (ArrayIndexOutOfBoundsException e) {cancel();}
-			}
-		}, 0, windowDuration);
+
 		System.out.println("WINDOW DURATION " +windowDuration);
 		
 		//play wav file simultaneously with showing spectrogram:
@@ -69,8 +71,16 @@ public class SpectrogramJComponent extends JComponent {
 		c = AudioSystem.getClip();
 		c.open(a);
 		c.start();
+		
+		timer.schedule(new TimerTask() {
+			public void run() { //timer executes 'step()' method on each window-length time interval, beginning immediately [0 delay]
+				try{step();} catch (ArrayIndexOutOfBoundsException e) {
+					cancel();
+					}
+			}
+		}, 0, windowDuration);
 	}
-
+	
 	public void step() { //'public' to allow access from timer thread
 		double[] spectroData = spec.getCompositeWindow(windowsDrawn); //remember that this array is only half full, as required by JTransforms
 		int elements = spectroData.length/2;
@@ -83,69 +93,34 @@ public class SpectrogramJComponent extends JComponent {
 		
 		for (int i = elements-1; i >= 0; i--) {
 			if (maxAmplitude < spectroData[i]) maxAmplitude = spectroData[i];
-			int val = 255-cappedValue(spectroData[i]); //TODO: scale this properly!
+			int val = 255-cappedValue(spectroData[i]); 
 			//g2current.setColor(new Color(val,val,val)); //greyscale
 			g2current.setColor(heatMap[255-val]); //colour heat map
-			g2current.fillRect(width-pixelWidth, (elements-i)*pixelHeight, pixelWidth, pixelHeight); //TODO: do right
+			g2current.fillRect((width-pixelWidth), (elements-i-1)*pixelHeight, pixelWidth, pixelHeight);
 		}
 
-		g2buffer.drawImage(bi, 0, 0, width, height, null);
-
+		repaint();
 		System.out.println("Windows drawn: "+windowsDrawn);
 		windowsDrawn++;
-		repaint();
 	}
 	
 	private int cappedValue(double d) {
-		//return an integer capped at 255 representing the given double value
-		double dAbs = Math.abs(d);
-		if (dAbs > maxAmplitude) return 255;
-		if (dAbs < 1) return 0;
-		double ml = Math.log1p(maxAmplitude);
-		double dl = Math.log1p(dAbs);
-		return (int)(dl*255/ml); //decibel is a log scale, want something linear
-		//return (int) (dAbs*255/maxAmplitude); 
-		
-		
-	}
-	
-	public void scroll(int offset) {
-		try {
-			synchronized(timer){
-				timer.wait(); //stop the timer from drawing
-				c.stop(); //stop the audio -- this does not restart it
-			}
-		} catch (InterruptedException e) {
-			e.printStackTrace();
+		/*
+		 * Returns an integer capped at 255 representing the magnitude of the
+		 * given double value, d, relative to the highest amplitude seen so far. The amplitude values
+		 * provided use a logarithmic scale but this method converts these back to a linear scale, 
+		 * more appropriate for pixel colouring.
+		 */
+		if (d < 0) return 0;
+		if (d > maxAmplitude) {
+			maxAmplitude = d;
+			return 255;
 		}
-		
-		//TODO: reset display properly - this still doesn't work
-		int oldWindowsDrawn = windowsDrawn;
-		int currentLeftmostWindow = windowsDrawn-(width/pixelWidth);
-		final int newLeftmostWindow = currentLeftmostWindow + offset;
-		windowsDrawn = newLeftmostWindow;
-		Timer timer2 = new Timer();
-		timer2.schedule(new TimerTask() {
-			public void run() { //timer executes 'step()' method on each window-length time interval, beginning immediately [0 delay]
-				try {
-					if (windowsDrawn < newLeftmostWindow+(width/pixelWidth)) step();
-					else cancel();
-				} catch (ArrayIndexOutOfBoundsException e) {
-					cancel();
-				}
-			}
-		}, 0, 10); //TODO: choose a good value for '10'
-	}
-	
-	public void resume() {
-		synchronized(timer){
-			timer.notify(); 
-			c.start(); //stop the audio
-		}
+		return (int)(255*Math.pow((Math.log1p(d)/Math.log1p(maxAmplitude)),contrast));
 	}
 
 	public void paintComponent(Graphics g) {
-		g.drawImage(buffer, 0, 0, null);
+		g.drawImage(bi, 0, 0, null);
 	}
 
 
